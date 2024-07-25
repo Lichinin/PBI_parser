@@ -1,16 +1,15 @@
 import base64
+import datetime
 import os
 
-import datetime
 import openpyxl
-from openpyxl.styles.borders import Border, Side
-from openpyxl.styles import Font
-
 import requests
 from bs4 import BeautifulSoup
+from openpyxl.styles import Font
+from openpyxl.styles.borders import Border, Side
 
 
-class DMM2200P:
+class DMM2400D:
     def __init__(self, device_ip, username, password, location):
         self.device_ip = device_ip
         self.location = location
@@ -19,7 +18,7 @@ class DMM2200P:
         }
 
     def get_tuner1_parameters(self):
-        tuner_url = f'http://{self.device_ip}/cgi-bin/input.cgi'
+        tuner_url = f'http://{self.device_ip}/cgi-bin/tuner1.cgi'
 
         tuner_response = requests.get(tuner_url, headers=self.headers)
 
@@ -53,7 +52,7 @@ class DMM2200P:
             print('Ошибка запроса:', tuner_response.status_code)
 
     def get_tuner2_parameters(self):
-        tuner_url = f'http://{self.device_ip}/cgi-bin/input2.cgi'
+        tuner_url = f'http://{self.device_ip}/cgi-bin/tuner2.cgi'
 
         tuner_response = requests.get(tuner_url, headers=self.headers)
 
@@ -86,6 +85,52 @@ class DMM2200P:
         else:
             print('Ошибка запроса:', tuner_response.status_code)
 
+    def get_tuner3_parameters(self):
+        tuner_url = f'http://{self.device_ip}/cgi-bin/tuner3.cgi'
+
+        tuner_response = requests.get(tuner_url, headers=self.headers)
+
+        if tuner_response.status_code == 200:
+            soup = BeautifulSoup(tuner_response.text, 'html.parser')
+
+            self.tuner3_lnb = soup.find(
+                'input',
+                {'name': 'LnbFreq'}
+            ).get('value')
+            self.tuner3_satellite_frequency = soup.find(
+                'input',
+                {'name': 'SateFreq'}
+            ).get('value')
+            self.tuner3_symbol_rate = soup.find(
+                'input',
+                {'name': 'SateSr'}
+            ).get('value')
+        else:
+            print('Ошибка запроса:', tuner_response.status_code)
+
+    def get_tuner4_parameters(self):
+        tuner_url = f'http://{self.device_ip}/cgi-bin/tuner4.cgi'
+
+        tuner_response = requests.get(tuner_url, headers=self.headers)
+
+        if tuner_response.status_code == 200:
+            soup = BeautifulSoup(tuner_response.text, 'html.parser')
+
+            self.tuner4_lnb = soup.find(
+                'input',
+                {'name': 'LnbFreq'}
+            ).get('value')
+            self.tuner4_satellite_frequency = soup.find(
+                'input',
+                {'name': 'SateFreq'}
+            ).get('value')
+            self.tuner4_symbol_rate = soup.find(
+                'input',
+                {'name': 'SateSr'}
+            ).get('value')
+        else:
+            print('Ошибка запроса:', tuner_response.status_code)
+
     def get_remux_parameters(self):
         response = requests.get(
             f'http://{self.device_ip}/cgi-bin/mux.cgi',
@@ -111,44 +156,44 @@ class DMM2200P:
             for div in tuner2_raw
         ]
 
-        ci1_data = soup.find('div', {'id': 'CI1_out_value'})
-        ci1_raw = ci1_data.find_all('div', {'class': 'tree_3'})
+        tuner3_data = soup.find('div', {'id': 'Tuner3_out_value'})
+        tuner3_raw = tuner3_data.find_all('div', {'class': 'tree_3'})
 
-        self.ci1_outputs = [
+        self.tuner3_outputs = [
             div.text.strip().split('\xa0')[-1]
-            for div in ci1_raw
+            for div in tuner3_raw
         ]
 
-        ci2_data = soup.find('div', {'id': 'CI2_out_value'})
-        ci2_raw = ci2_data.find_all('div', {'class': 'tree_3'})
+        tuner4_data = soup.find('div', {'id': 'Tuner3_out_value'})
+        tuner4_raw = tuner4_data.find_all('div', {'class': 'tree_3'})
 
-        self.ci2_outputs = [
+        self.tuner4_outputs = [
             div.text.strip().split('\xa0')[-1]
-            for div in ci2_raw
+            for div in tuner4_raw
         ]
 
-        ip_data = soup.find('div', {'id': 'IPIN_out_value'})
-        ip_raw = ip_data.find_all('div', {'class': 'tree_3'})
+        # ip_data = soup.find('div', {'id': 'IPIN_out_value'})
+        # ip_raw = ip_data.find_all('div', {'class': 'tree_3'})
 
-        self.ip_outputs = [
-            div.text.strip().split('\xa0')[-1]
-            for div in ip_raw
-        ]
+        # self.ip_outputs = [
+        #     div.text.strip().split('\xa0')[-1]
+        #     for div in ip_raw
+        # ]
 
-    def get_decoder(self):
+
+    def check_ip_type(self):
         response = requests.get(
-            f'http://{self.device_ip}/cgi-bin/decoder.cgi',
+            f'http://{self.device_ip}/cgi-bin/ip.cgi',
             headers=self.headers
         )
-        response.encoding = 'utf-8'
-
         soup = BeautifulSoup(response.text, 'html.parser')
-
-        decoder_data = soup.find(
-            'input',
-            {'name': 'service_name'}
+        ip_type = soup.find(
+            'tr',
+            {'class': 'content_title'}
         )
-        self.decoder = decoder_data['value']
+        ip_type = ip_type.text.strip()
+        return ip_type
+
 
     def get_ip_output(self):
         ip_parts = []
@@ -172,12 +217,43 @@ class DMM2200P:
         ).get('value')
         self.output_ip = f'{ip_address}:{port}'
 
+    def get_ip_input(self):
+        ip_parts = []
+        response = requests.get(
+            f'http://{self.device_ip}/cgi-bin/ip.cgi',
+            headers=self.headers
+        )
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        for i in range(0, 4):
+            input_name = f'multicast_ip{i}'
+            input_tag = soup.find('input', {'name': input_name})
+            if input_tag:
+                ip_parts.append(input_tag['value'])
+            else:
+                break
+        ip_address = '.'.join(ip_parts)
+        port = soup.find(
+            'input',
+            {'name': 'ip_in_multicast_port'}
+        ).get('value')
+        self.input_ip = f'{ip_address}:{port}'
+
+    def get_ip_params(self):
+        ip_type = self.check_ip_type()
+        if ip_type == 'TS/IP In':
+            self.get_ip_input()
+        elif ip_type == 'TS/IP Out':
+            self.get_ip_output()
+
     def get_all_parameters(self):
         self.get_tuner1_parameters()
         self.get_tuner2_parameters()
+        self.get_tuner3_parameters()
+        self.get_tuner4_parameters()
         self.get_remux_parameters()
-        self.get_decoder()
-        self.get_ip_output()
+        # self.get_decoder()
+        # self.get_ip_params()
 
     def export_params_to_excel(self, name):
         output_dir = os.path.join(os.getcwd(), "excel_output")
@@ -262,30 +338,17 @@ class DMM2200P:
         worksheet.cell(row=row, column=2, value=", ".join(str(x) for x in self.tuner2_outputs)).border = border
         row += 1
 
-        worksheet.cell(row=row, column=1, value='CI 1 Out').border = border
-        worksheet.cell(row=row, column=2, value=", ".join(str(x) for x in self.ci1_outputs)).border = border
-        row += 1
-
-        worksheet.cell(row=row, column=1, value='CI 2 Out').border = border
-        worksheet.cell(row=row, column=2, value=", ".join(str(x) for x in self.ci2_outputs)).border = border
-        row += 1
-
-        worksheet.cell(row=row, column=1, value='IP Out').border = border
-        worksheet.cell(row=row, column=2, value=", ".join(str(x) for x in self.ip_outputs)).border = border
-        row += 2
-
-        worksheet.cell(row=row, column=1, value='Декодер').font = Font(bold=True)
-        row += 1
-
-        worksheet.cell(row=row, column=1, value='Выход декодера').border = border
-        worksheet.cell(row=row, column=2, value=str(self.decoder)).border = border
-        row += 2
-
         worksheet.cell(row=row, column=1, value='Мультикаст').font = Font(bold=True)
         row += 1
 
-        worksheet.cell(row=row, column=1, value='IP multicast').border = border
-        worksheet.cell(row=row, column=2, value=str(self.output_ip)).border = border
-        row += 2
+        if hasattr(self, 'output_ip'):
+            worksheet.cell(row=row, column=1, value='IP multicast OUT').border = border
+            worksheet.cell(row=row, column=2, value=str(self.output_ip)).border = border
+            row += 2
+
+        if hasattr(self, 'input_ip'):
+            worksheet.cell(row=row, column=1, value='IP multicast IN').border = border
+            worksheet.cell(row=row, column=2, value=str(self.input_ip)).border = border
+            row += 2
 
         workbook.save(file_path)

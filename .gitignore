@@ -405,3 +405,5 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+excel_output/
+.excel_output/
