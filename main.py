@@ -3,7 +3,8 @@ import os
 from dotenv import load_dotenv
 
 from pbi_classes.dmm_2200p_s2 import DMM2200P
-from pbi_classes.dmm_2410d_s2 import DMM2410D
+# from pbi_classes.dmm_2410d_s2 import DMM2410D
+from pbi_classes.dmm_1510p_s2 import DMM1510D
 
 load_dotenv()
 
@@ -24,22 +25,36 @@ pbi_2410_list = {
     220: '192.168.1.220',
 }
 
-for name, address in pbi_2200_list.items():
-    pbi = DMM2200P(
+pbi_1510_list = {
+    171: '192.168.1.171',
+}
+
+for name, address in pbi_1510_list.items():
+    pbi = DMM1510D(
         address,
         os.getenv('LOGIN'),
-        os.getenv('KORABLINO_PASSWORD'),
+        os.getenv('RYAZSK_PASSWORD'),
         location
     )
     pbi.get_all_parameters()
     pbi.export_params_to_excel(name)
 
-for name, address in pbi_2410_list.items():
-    pbi = DMM2410D(
-        address,
-        os.getenv('LOGIN'),
-        os.getenv('KORABLINO_PASSWORD'),
-        location
-    )
-    pbi.get_all_parameters()
-    pbi.export_params_to_excel(name)
+# for name, address in pbi_2200_list.items():
+#     pbi = DMM2200P(
+#         address,
+#         os.getenv('LOGIN'),
+#         os.getenv('KORABLINO_PASSWORD'),
+#         location
+#     )
+#     pbi.get_all_parameters()
+#     pbi.export_params_to_excel(name)
+
+# for name, address in pbi_2410_list.items():
+#     pbi = DMM2410D(
+#         address,
+#         os.getenv('LOGIN'),
+#         os.getenv('KORABLINO_PASSWORD'),
+#         location
+#     )
+#     pbi.get_all_parameters()
+#     pbi.export_params_to_excel(name)

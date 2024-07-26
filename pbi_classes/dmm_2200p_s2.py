@@ -227,7 +227,7 @@ class DMM2200P:
 
         file_path = os.path.join(
             output_dir,
-            f"{self.location} {name} PBI {datetime.date.today()}.xlsx"
+            f"{self.location} {name} PBI {self.__class__.__name__} {datetime.date.today()}.xlsx"
         )
         try:
             workbook = openpyxl.load_workbook(file_path)
@@ -242,7 +242,7 @@ class DMM2200P:
         )
         worksheet.column_dimensions['A'].width = 20
 
-        worksheet['A1'] = f'Конфигурация устройства {self.device_ip} ({self.location}) {datetime.date.today()}'
+        worksheet['A1'] = f'Конфигурация устройства {self.device_ip} ({self.__class__.__name__}) ({self.location}) {datetime.date.today()}'
         worksheet['A1'].font = Font(bold=True)
         row = worksheet.max_row + 2
 
